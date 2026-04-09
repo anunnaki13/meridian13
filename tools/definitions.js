@@ -627,10 +627,10 @@ Returns pool address, name, bin_step, fee %, TVL, volume, and token mints.`,
       name: "get_top_lpers",
       description: `Get the top LPers for a pool by address — quick read-only lookup.
 Use this when the user asks "who are the top LPers in this pool?" or wants to
-know how others are performing in a specific pool without saving lessons.
+know how others are performing in a specific pool.
 
-Returns: aggregate patterns (avg hold time, win rate, ROI) and per-LPer summaries.
-Requires LPAGENT_API_KEY to be set.`,
+Returns: on-chain position analysis (bin ranges, strategy, SOL deployed) for the biggest LPers.
+No API key required — reads directly from on-chain data via Meteora SDK.`,
       parameters: {
         type: "object",
         properties: {
@@ -641,6 +641,11 @@ Requires LPAGENT_API_KEY to be set.`,
           limit: {
             type: "number",
             description: "Number of top LPers to return. Default 5."
+          },
+          method: {
+            type: "string",
+            enum: ["auto", "onchain", "api"],
+            description: "Data source. auto=on-chain first, api fallback. onchain=free RPC only. api=LPAgent API (needs key). Default: auto."
           }
         },
         required: ["pool_address"]
@@ -653,12 +658,17 @@ Requires LPAGENT_API_KEY to be set.`,
     function: {
       name: "study_top_lpers",
       description: `Fetch and analyze top LPers for a pool to learn from their behaviour.
-Returns aggregate patterns (avg hold time, win rate, ROI) and historical samples.
+Reads on-chain position data directly (free, no API key required).
+
+Returns:
+- Consensus strategy: what bin range and strategy type the biggest LPers use
+- Per-LPer breakdown: bins below/above, SOL deployed, in-range %, unclaimed fees
+- Recommendation: whether top LPers favor single-sided or dual-sided positions
 
 Use this before deploying into a new pool to:
-- See if top performers are scalpers (< 1h holds) or long-term holders.
-- Match your strategy and range to what is actually working for others.
-- Avoid pools where even the best performers have low win rates.`,
+- Match your strategy and range to what is actually working for the biggest wallets.
+- Check if top LPers are single-sided or dual-sided (informs bins_above decision).
+- See if most positions are in-range (healthy) or out-of-range (strong trend).`,
       parameters: {
         type: "object",
         properties: {
@@ -668,7 +678,12 @@ Use this before deploying into a new pool to:
           },
           limit: {
             type: "number",
-            description: "Number of top LPers to study. Default 4."
+            description: "Number of top LPers to study. Default 5."
+          },
+          method: {
+            type: "string",
+            enum: ["auto", "onchain", "api"],
+            description: "Data source. auto=on-chain first, api fallback. onchain=free RPC only. api=LPAgent API (needs key). Default: auto."
           }
         },
         required: ["pool_address"]

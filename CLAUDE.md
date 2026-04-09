@@ -133,17 +133,20 @@ Before `deploy_position` executes:
 
 ## bins_below / bins_above Calculation (SCREENER)
 
-Both values are auto-calculated server-side. The LLM must NOT pass either — passing any value overrides the optimization.
+Both values are auto-calculated server-side in `dlmm.js`. The LLM must NOT pass either — passing any value overrides the optimization.
 
 **bins_below** — Linear formula based on pool volatility:
 
 ```
-bins_below = round(35 + (volatility / 5) * 34), clamped to [35, 69]
+vol ≤ 5:  bins_below = round(35 + (volatility / 5) * 55), range [35, 90]
+vol > 5:  bins_below = round(90 + ((volatility - 5) / 5) * 30), capped at 120
 ```
 
 - Low volatility (0) → 35 bins
-- High volatility (5+) → 69 bins
-- Any value in between is valid (continuous, not tiered)
+- Medium volatility (5) → 90 bins
+- High volatility (10+) → 120 bins (cap)
+
+Default `binsAbove = 8` — provides upside fee capture so positions don't immediately go OOR on small pumps.
 
 **bins_above** — Calculated in `computeOptimalBinsAbove()` in `tools/dlmm.js`:
 

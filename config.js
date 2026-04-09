@@ -76,15 +76,15 @@ export const config = {
   management: {
     minClaimAmount:        u.minClaimAmount        ?? 5,
     autoSwapAfterClaim:    u.autoSwapAfterClaim    ?? false,
-    outOfRangeBinsToClose: u.outOfRangeBinsToClose ?? 10,
-    outOfRangeWaitMinutes: u.outOfRangeWaitMinutes ?? 30,
+    outOfRangeBinsToClose: u.outOfRangeBinsToClose ?? 15,
+    outOfRangeWaitMinutes: u.outOfRangeWaitMinutes ?? 45,
     // belowOORWaitMinutes: when price drops BELOW your range (token dumping), close faster.
     // Position is now 100% base token with IL maximized — waiting helps nothing.
-    belowOORWaitMinutes: u.belowOORWaitMinutes ?? 15,
+    belowOORWaitMinutes: u.belowOORWaitMinutes ?? 25,
     oorCooldownTriggerCount: u.oorCooldownTriggerCount ?? 3,
     oorCooldownHours:       u.oorCooldownHours       ?? 12,
     minVolumeToRebalance:  u.minVolumeToRebalance  ?? 1000,
-    stopLossPct:           u.stopLossPct           ?? u.emergencyPriceDropPct ?? -35,
+    stopLossPct:           u.stopLossPct           ?? u.emergencyPriceDropPct ?? -25,
     // Tighter SL for bid_ask (meme/volatile) positions — don't ride losers down.
     // If null, falls back to stopLossPct for all strategies.
     bidAskStopLossPct:     u.bidAskStopLossPct     ?? -20,
@@ -93,15 +93,15 @@ export const config = {
     // effectiveSL = max(stopLossPct, peak_pnl - maxDrawdownFromPeak)
     // Example: peak=+8%, maxDrawdown=8 → floor=0% (never go below break-even after peaking)
     // Set to 0 to disable (use fixed stopLossPct only).
-    maxDrawdownFromPeak:   u.maxDrawdownFromPeak   ?? 8,
+    maxDrawdownFromPeak:   u.maxDrawdownFromPeak   ?? 20,
     takeProfitFeePct:      u.takeProfitFeePct      ?? 20,
-    minFeePerTvl24h:       u.minFeePerTvl24h       ?? 7,
-    minAgeBeforeYieldCheck: u.minAgeBeforeYieldCheck ?? 60, // minutes before low yield can trigger close
+    minFeePerTvl24h:       u.minFeePerTvl24h       ?? 3,
+    minAgeBeforeYieldCheck: u.minAgeBeforeYieldCheck ?? 120, // minutes before low yield can trigger close
     // Fee velocity: how fast fees accumulate vs. the position's peak rate.
     // If fees slow to minFeeVelocityPct% of their peak rate, the pool is dying.
     // 0 = disabled, 20 = exit when fees drop to 20% of peak rate
-    minFeeVelocityPct:     u.minFeeVelocityPct     ?? 20,
-    feeVelocityMinAgeMin:  u.feeVelocityMinAgeMin  ?? 120, // wait 2h before checking fee velocity
+    minFeeVelocityPct:     u.minFeeVelocityPct     ?? 15,
+    feeVelocityMinAgeMin:  u.feeVelocityMinAgeMin  ?? 240, // wait 4h before checking fee velocity
     // Rebalance instead of plain-close when position goes OOR:
     // close the position and immediately redeploy at the new active bin in the same pool.
     // Skips screening cycle and keeps capital working with zero dead time.
@@ -120,8 +120,8 @@ export const config = {
     positionSizePct:       u.positionSizePct       ?? 0.35,
     // Trailing take-profit
     trailingTakeProfit:    u.trailingTakeProfit    ?? true,
-    trailingTriggerPct:    u.trailingTriggerPct    ?? 3,    // activate trailing at X% PnL
-    trailingDropPct:       u.trailingDropPct       ?? 1.5,  // close when drops X% from peak
+    trailingTriggerPct:    u.trailingTriggerPct    ?? 8,    // activate trailing at X% PnL
+    trailingDropPct:       u.trailingDropPct       ?? 3.5,  // close when drops X% from peak
     pnlSanityMaxDiffPct:   u.pnlSanityMaxDiffPct   ?? 5,    // max allowed diff between reported and derived pnl % before ignoring a tick
     // SOL mode — positions, PnL, and balances reported in SOL instead of USD
     solMode:               u.solMode               ?? false,
@@ -131,7 +131,7 @@ export const config = {
   strategy: {
     strategy:  u.strategy  ?? "bid_ask",
     binsBelow: u.binsBelow ?? 69,
-    binsAbove: u.binsAbove ?? 0,  // bins above active price (0 = single-sided below only)
+    binsAbove: u.binsAbove ?? 8,  // bins above active price for upside fee capture
   },
 
   // ─── Market Mode ────────────────────────
