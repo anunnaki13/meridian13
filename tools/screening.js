@@ -364,6 +364,26 @@ export async function getTopCandidates({ limit = 10 } = {}) {
       }
     }
 
+    // ── LP crowding density filter ──────────────────────────────────
+    // High lp_density = many bots competing for same fees = fee dilution.
+    // A "good" pool attracting too many LPs becomes unprofitable for each individual LP.
+    {
+      const maxDensity = config.screening.maxLpDensity;
+      if (maxDensity != null) {
+        const before = eligible.length;
+        eligible.splice(0, eligible.length, ...eligible.filter((p) => {
+          if (p.lp_density == null) return true; // no data → don't filter
+          if (p.lp_density > maxDensity) {
+            log("screening", `LP density filter: dropped ${p.name} — ${p.lp_density} LPs/$1k TVL (max ${maxDensity})`);
+            pushFilteredReason(filteredOut, p, `LP density ${p.lp_density} > max ${maxDensity} LPs/$1k TVL`);
+            return false;
+          }
+          return true;
+        }));
+        if (eligible.length < before) log("screening", `LP density filter removed ${before - eligible.length} pool(s)`);
+      }
+    }
+
     // ── Composite quality scoring ────────────────────────────────────
     // Score each pool on a 0-100 scale before the LLM sees them.
     // Higher score = better risk-adjusted yield expectation.
@@ -441,6 +461,18 @@ export async function getTopCandidates({ limit = 10 } = {}) {
         else if (p.active_positions <= 8)      score += 3;  // low competition
       }
 
+      // ── LP crowding density penalty ────────────────────────────────
+      // lp_density: active LPs per $1k TVL. Higher = more competition = fee dilution.
+      // Insight: popular pools attract bots with aggressive (tight) ranges that
+      // out-compete wider strategies, so even the total fee/position understates the problem.
+      if (p.lp_density != null) {
+        if (p.lp_density <= 0.5)       score += 10; // very uncrowded — excellent
+        else if (p.lp_density <= 1.0)  score += 5;  // low competition
+        else if (p.lp_density <= 2.0)  score += 0;  // moderate — neutral
+        else if (p.lp_density <= 3.0)  score -= 5;  // crowded — fee dilution likely
+        else                           score -= 12; // very crowded — bot war zone
+      }
+
       // ── Bin step preference ───────────────────────────────────────
       // Lower bin step = finer price granularity = more fee earned per crossing.
       // But too low = position covers tiny range, high OOR risk.
@@ -471,19 +503,8 @@ export async function getTopCandidates({ limit = 10 } = {}) {
       p.quality_score = Math.round(Math.max(0, Math.min(100, score)));
 
       // ── Strategy recommendation ───────────────────────────────────
-      // bid_ask: optimal for volatile/meme tokens — single-sided SOL, earn from price swings
-      // spot: better for established/stable tokens — both-sided, lower IL risk
-      const age   = p.token_age_hours;
-      const mcap  = p.mcap;
-      const vol   = p.volatility;
-      const org   = p.organic_score;
-      if (vol >= 2.5 && (mcap == null || mcap < 3_000_000) && (age == null || age < 72)) {
-        p.recommended_strategy = "bid_ask";
-      } else if (org >= 75 && mcap != null && mcap >= 2_000_000) {
-        p.recommended_strategy = "spot";
-      } else {
-        p.recommended_strategy = "bid_ask"; // safe default
-      }
+      // Always bid_ask — single-sided SOL, better for volatile meme/trending tokens
+      p.recommended_strategy = "bid_ask";
     }
 
     // Sort descending by quality score before returning to LLM
@@ -593,6 +614,14 @@ function condensePool(p) {
     // Formula: fee_window / active_positions (raw $, not normalised by position size)
     fee_per_position_est: (p.active_positions > 0 && p.fee != null)
       ? fix(p.fee / p.active_positions, 2)
+      : null,
+
+    // ── LP crowding density ─────────────────────────────────────────
+    // lp_density: active LPs per $1k of TVL. High = crowded pool (many bots competing).
+    // A "good-looking" pool with 30 LPs and $10k TVL has density 3.0 — very crowded.
+    // A pool with 5 LPs and $20k TVL has density 0.25 — much less competition.
+    lp_density: (p.active_positions > 0 && p.active_tvl > 0)
+      ? fix(p.active_positions / (p.active_tvl / 1000), 2)
       : null,
 
     // ── Daily yield projection ────────────────────────────────────────

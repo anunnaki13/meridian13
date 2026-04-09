@@ -84,6 +84,7 @@ Sets defined in `agent.js:6-7`. If you add a tool, also add it to the relevant s
 | minPoolAgeHours | screening | 6 |
 | maxPoolAgeHours | screening | null (no limit) |
 | minFeePerPosition | screening | 1.5 |
+| maxLpDensity | screening | 3.0 |
 | maxEntry5mPricePct | screening | 12 |
 | minEntry5mPricePct | screening | -20 |
 | athFilterPct | screening | -15 |

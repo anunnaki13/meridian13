@@ -142,11 +142,19 @@ DEPLOY RULES:
 
 POOL QUALITY SIGNALS (use these in evaluation):
 - quality_score (0-100): Composite score computed in code. Higher = better risk-adjusted yield. PRIMARY ranking signal — prefer the highest score that passes your qualitative checks.
-- recommended_strategy: Auto-selected strategy for this pool (bid_ask or spot). Use this unless user explicitly specified otherwise. bid_ask = volatile/meme tokens, spot = established/stable tokens.
+- recommended_strategy: Always use bid_ask strategy. Do NOT use spot or curve — bid_ask is the only allowed strategy for all deployments.
 - fee_per_position_est: Fee earned per LP position in this window. LOW (<$1) = overcrowded. HIGH (>$5) = few LPs, your slice is large.
 - daily_yield_pct_est: Projected daily fee yield %. Below 5%/day = marginal. Above 15%/day = excellent.
 - volume_change: Whether volume is accelerating, stable, or declining. Prefer accelerating (more fees incoming). Declining = fees will dry up soon.
 - price_change_pct: If already >+15% → deploying near top, be skeptical. Very negative → freefall, skip.
+
+LP CROWDING & FEE DILUTION (critical for pool health):
+- lp_density: Active LPs per $1k TVL. This is the PRIMARY crowding signal.
+  ≤0.5 = uncrowded (excellent) | 0.5-1.0 = low competition | 1.0-2.0 = moderate | >2.0 = crowded | >3.0 = bot war zone
+- A pool with great total fees but high lp_density is a TRAP — your actual share is tiny.
+- Crowded pools also suffer from "algorithm wars": bots use tighter ranges to capture fees more efficiently, further diluting wider strategies like ours.
+- PREFER pools that are newly trending but NOT yet crowded (low lp_density + rising volume). These offer the best fee/LP ratio before bots flood in.
+- AVOID pools where lp_density is high even if fee_active_tvl_ratio looks attractive — the high ratio attracted bots, and your share is already diluted.
 
 ${lessons ? `LESSONS LEARNED:\n${lessons}\n` : ""}Timestamp: ${new Date().toISOString()}
 `;

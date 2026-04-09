@@ -223,6 +223,10 @@ Additional filters applied after API enrichment:
 
 Before scoring, any pool where `fee_per_position_est < $1.50` is dropped. This removes overcrowded pools where your slice of fees is negligible regardless of how good the pool metrics look.
 
+### Hard filter: LP crowding density
+
+Pools where `lp_density > 3.0` (active LPs per $1k TVL) are dropped. This catches "bot war zone" pools where total fees look attractive but your actual share is tiny due to fee dilution. When a pool becomes popular, hundreds of bots flood in with aggressive tight-range strategies, diluting fees for everyone while out-competing wider range strategies. The `maxLpDensity` threshold is configurable in `user-config.json`.
+
 ### Composite quality score (0–100)
 
 After hard filters, every eligible pool receives a quality score before the LLM sees it. Pools are sorted descending by score so the highest-quality pool is always presented first.
@@ -237,6 +241,10 @@ After hard filters, every eligible pool receives a quality score before the LLM 
 | Pool age sweet spot (6–48h old) | +8 pts |
 | LP competition (≤3 active positions) | +6 pts |
 | LP competition (active_pct < 30%) | −8 pts |
+| LP crowding density ≤0.5/k TVL | +10 pts (uncrowded) |
+| LP crowding density 0.5–1.0/k TVL | +5 pts |
+| LP crowding density 2.0–3.0/k TVL | −5 pts (crowded) |
+| LP crowding density >3.0/k TVL | −12 pts (bot war zone) |
 | Bin step ≤ 80 | +5 pts |
 | Bin step ≥ 120 | −3 pts |
 | Volume consistency (churn ≥ 70%) | +4 pts |
@@ -356,6 +364,7 @@ All fields are optional — defaults shown. Edit `user-config.json`.
 | `minPoolAgeHours` | `6` | Skip pools younger than X hours |
 | `maxPoolAgeHours` | `null` | Maximum pool age in hours (null = no limit; scoring already penalizes very old pools) |
 | `minFeePerPosition` | `1.50` | Hard filter: skip pools where estimated fee per LP position < $X |
+| `maxLpDensity` | `3.0` | Hard filter: skip pools with > X active LPs per $1k TVL (crowding/fee dilution guard) |
 
 ### Management
 
@@ -526,6 +535,8 @@ tools/
 ## Changelog
 
 ### Latest improvements
+
+**LP crowding density filter** — New `lp_density` metric (active LPs per $1k TVL) detects overcrowded "bot war zone" pools. Hard filter drops pools with density > 3.0, quality score penalizes crowded pools up to −12 pts and rewards uncrowded pools up to +10 pts. Addresses fee dilution when popular pools attract aggressive bots with tighter ranges that out-compete wider strategies.
 
 **Strategy-aware stop loss** — Stop loss is now applied per strategy: bid_ask positions exit at −20% (tighter, since they're volatile by design), spot positions at −35% (more IL tolerance). Previously a single global −50% applied to both.
 

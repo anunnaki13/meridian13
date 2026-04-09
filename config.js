@@ -70,6 +70,10 @@ export const config = {
     // Min expected fee per LP position — filters out overcrowded pools where your slice is dust.
     // e.g. 1.5 = skip pools where your expected fee < $1.50 per timeframe window
     minFeePerPosition:  u.minFeePerPosition  ?? 1.5,
+    // Max LP density (active LPs per $1k TVL) — filters out overcrowded pools.
+    // High density = many bots competing for the same fees = fee dilution.
+    // e.g. 3.0 = skip pools with >3 active LPs per $1k TVL
+    maxLpDensity:       u.maxLpDensity       ?? 3.0,
   },
 
   // ─── Position Management ────────────────
